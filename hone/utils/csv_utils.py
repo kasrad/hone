@@ -6,6 +6,7 @@ from contextlib import contextmanager
 import csv
 import fileinput
 
+
 class CSVUtils:
     def __init__(self, csv_filepath):
         self.filepath = csv_filepath

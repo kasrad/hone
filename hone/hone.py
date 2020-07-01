@@ -1,5 +1,8 @@
 from hone.utils import csv_utils
 import copy
+import logging
+import sys
+
 
 class Hone:
     DEFAULT_DELIMITERS = [",", "_", " "]
@@ -8,20 +11,29 @@ class Hone:
         self.delimiters = delimiters
         self.csv_filepath = None
         self.csv = csv_utils.CSVUtils(self.csv_filepath)
+        for delimiter in self.delimiters:
+            substr_list = [1 for i in self.delimiters if delimiter in i]
+            if sum(substr_list) > 1:
+                logging.error(
+                    f'the delimiter {delimiter} is a substring of some other delimiter, which is forbidden')
+                sys.exit(1)
 
     '''
     Perform CSV to nested JSON conversion and return resulting JSON.
     '''
-    def convert(self, csv_filepath, schema = None):
+
+    def convert(self, csv_filepath, schema=None):
         self.set_csv_filepath(csv_filepath)
         column_names = self.csv.get_column_names()
+
         data = self.csv.get_data_rows()
         column_schema = schema
         if not column_schema:
             column_schema = self.generate_full_structure(column_names)
-        json_struct = self.populate_structure_with_data(column_schema, column_names, data)
+        json_struct = self.populate_structure_with_data(
+            column_schema, column_names, data)
         return json_struct
-        
+
     '''
     Returns dictionary with given data rows fitted to given structure.
     '''
@@ -50,7 +62,6 @@ class Hone:
     def get_schema(self, csv_filepath):
         self.set_csv_filepath(csv_filepath)
         column_names = self.csv.get_column_names()
-        data = self.csv.get_data_rows()
         column_struct = self.generate_full_structure(column_names)
         return column_struct
 
@@ -64,6 +75,14 @@ class Hone:
         sorted(column_names)
         column_names = column_names[::-1]
         for c1 in column_names:
+            for first_part in self.delimiters:
+                for second_part in self.delimiters:
+                    if (str(first_part+second_part) in c1):
+                        logging.error(f"In the column name \"{c1}\"\
+                             there are two delimiters next to each other,\
+                             which would result in an empty key. Aborting the conversion.")
+                        sys.exit(1)
+
             if c1 in visited:
                 continue
             splits = self.get_valid_splits(c1)
@@ -101,7 +120,8 @@ class Hone:
                     continue
                 for c2 in column_names:
                     if c2 not in visited and self.is_valid_prefix(split, c2):
-                        nodes[split][self.get_split_suffix(split, c2)] = parent_structure[c2]
+                        nodes[split][self.get_split_suffix(
+                            split, c2)] = parent_structure[c2]
                         visited.add(c2)
                 if len(nodes[split].keys()) > 1:
                     structure[split] = self.get_nested_structure(nodes[split])
@@ -133,11 +153,25 @@ class Hone:
         splits = []
         i = len(column_name) - 1
         while i >= 0:
-            c = column_name[i]
-            if c in self.delimiters:
-                split = self.clean_split(column_name[0:i])
+            a = column_name[i]
+            if i > 0:
+                b = column_name[i-1:i+1]
+            if i > 1:
+                c = column_name[i-2:i+1]
+            if a in self.delimiters:
+                split = column_name[:i]
+                i -= 1
                 splits.append(split)
-            i -= 1
+            elif b in self.delimiters:
+                split = column_name[:i-1]
+                i -= 2
+                splits.append(split)
+            elif c in self.delimiters:
+                split = column_name[:i-2]
+                i -= 3
+                splits.append(split)
+            else:
+                i -= 1
         return sorted(list(set(splits)))
 
     '''
@@ -155,19 +189,6 @@ class Hone:
         return suffix
 
     '''
-    Returns split with no trailing delimiting characters.
-    '''
-
-    def clean_split(self, split):
-        i = len(split) - 1
-        while i >= 0:
-            c = split[i]
-            if c not in self.delimiters:
-                return split[0:i + 1]
-            i -= 1
-        return split
-
-    '''
     Returns true if str_a is a valid prefix of str_b
     '''
 
@@ -180,6 +201,7 @@ class Hone:
     '''
     Replaces the current csv_filepath.
     '''
+
     def set_csv_filepath(self, csv_filepath):
         self.csv_filepath = csv_filepath
         self.csv.filepath = self.csv_filepath
@@ -187,6 +209,7 @@ class Hone:
     '''
     Escapes all single and double quotes in a given string.
     '''
+
     def escape_quotes(self, string):
         unescaped = string.replace('\\"', '"').replace("\\'", "'")
         escaped = unescaped.replace('"', '\\"').replace("'", "\\'")

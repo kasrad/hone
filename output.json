@@ -1,0 +1,30 @@
+[
+  {
+    "adopted_since": "2012",
+    "ageX(years)": "5",
+    "birthXday": "11",
+    "name": "Tommy",
+    "weightX(kg)": "3.6"
+  },
+  {
+    "adopted_since": "N/A",
+    "ageX(years)": "2",
+    "birthXday": "6",
+    "name": "Clara",
+    "weightX(kg)": "8.2"
+  },
+  {
+    "adopted_since": "2017",
+    "ageX(years)": "6",
+    "birthXday": "21",
+    "name": "Catnip",
+    "weightX(kg)": "3.3"
+  },
+  {
+    "adopted_since": "2018",
+    "ageX(years)": "3",
+    "birthXday": "18",
+    "name": "Ciel",
+    "weightX(kg)": "3.1"
+  }
+]
